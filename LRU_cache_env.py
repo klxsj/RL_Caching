@@ -29,7 +29,7 @@ reward=0
 while current_step<= MAX_STEPS:
     request = data.loc[current_step : current_step+1].values
     
-    lru_rank = np.zeros(shape=(18,))
+    lru_rank = np.array(range(18))
     
     # update the table (considering life-time):
     # life = current_step - mem_status[:, [1,4]]
@@ -45,20 +45,20 @@ while current_step<= MAX_STEPS:
         
         if edge1_has[0].shape != (0,) and i==0:
             reward += MIN_COMMUN
-            fresh= current_step - mem_status[edge1_has[0][0]+1, (edge1_has[1][0]*3)+1]
-            fresh /= mem_status[edge1_has[0][0]+1, (edge1_has[1][0]*3)+2]
+            fresh= current_step - mem_status[edge1_has[0][0], (edge1_has[1][0]*3)+1]
+            fresh /= mem_status[edge1_has[0][0], (edge1_has[1][0]*3)+2]
             reward -= fresh
             do_cache = False
         elif edge2_has[0].shape != (0,) and i==1:
             reward += MIN_COMMUN
-            fresh= current_step - mem_status[edge2_has[0][0]+4, (edge2_has[1][0]*3)+1]
-            fresh /= mem_status[edge2_has[0][0]+4, (edge2_has[1][0]*3)+2]
+            fresh= current_step - mem_status[edge2_has[0][0]+3, (edge2_has[1][0]*3)+1]
+            fresh /= mem_status[edge2_has[0][0]+3, (edge2_has[1][0]*3)+2]
             reward -= fresh
             do_cache = False
         elif parent_has[0].shape != (0,):
             reward += MID_COMMUN
-            fresh= current_step - mem_status[parent_has[0][0]+7, (parent_has[1][0]*3)+1]
-            fresh /= mem_status[parent_has[0][0]+7, (parent_has[1][0]*3)+2]
+            fresh= current_step - mem_status[parent_has[0][0]+6, (parent_has[1][0]*3)+1]
+            fresh /= mem_status[parent_has[0][0]+6, (parent_has[1][0]*3)+2]
             reward -= fresh
             do_cache = False
            
@@ -84,7 +84,7 @@ while current_step<= MAX_STEPS:
                 for num in edge2:
                     temp = np.delete(temp, np.where(temp == num))
                 location = temp[-1]
-                col = (location % 2) *3
+                col = int((location % 2) *3)
                 row = int((location - (location % 2)) / 2)
                 mem_status[row, col] = request[i, 0]
                 mem_status[row, col + 1] = current_step
@@ -109,8 +109,8 @@ while current_step<= MAX_STEPS:
                 for num in edge1:
                     temp = np.delete(temp, np.where(temp == num))
                 location = temp[-1]
-                col = (location % 2) * 3
-                row = (location - (location % 2)) / 2
+                col = int((location % 2) *3)
+                row = int((location - (location % 2)) / 2)
                 mem_status[row, col] = request[i, 0]
                 mem_status[row, col + 1] = current_step
                 mem_status[row, col + 2] = request[i, 1]
