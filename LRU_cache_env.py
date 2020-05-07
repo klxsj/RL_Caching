@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import gc
 
-data = pd.read_csv('')
+data = pd.read_csv('./data/requests.csv')
 
 """ take a look at the shape"""
 
@@ -27,7 +27,7 @@ fresh_cost_weight= 1
 reward=0
 
 while current_step<= MAX_STEPS:
-    request = data[current_step : current_step+1].values
+    request = data.loc[current_step : current_step+1].values
     
     lru_rank = np.zeros(shape=(18,))
     
@@ -50,7 +50,7 @@ while current_step<= MAX_STEPS:
             reward -= fresh
             do_cache = False
         elif edge2_has[0].shape != (0,) and i==1:
-            reward += MID_COMMUN
+            reward += MIN_COMMUN
             fresh= current_step - mem_status[edge2_has[0][0]+4, (edge2_has[1][0]*3)+1]
             fresh /= mem_status[edge2_has[0][0]+4, (edge2_has[1][0]*3)+2]
             reward -= fresh
@@ -70,13 +70,13 @@ while current_step<= MAX_STEPS:
                 position= [parent_has[0][0], parent_has[1][0]*3]
                 temp = 2*position[0] + int(position[1]/3)
                 rank = np.where(lru_rank == temp)
-                lru_rank[:,temp] = np.roll(lru_rank[:temp], 1)
+                lru_rank[:temp] = np.roll(lru_rank[:temp], 1)
 
             if edge1_has[0].shape != (0,):
                 position= [edge1_has[0][0], edge1_has[1][0]*3]
                 temp = 2*position[0] + int(position[1]/3)
                 rank = np.where(lru_rank == temp)
-                lru_rank[:,temp] = np.roll(lru_rank[:temp], 1)
+                lru_rank[:temp] = np.roll(lru_rank[:temp], 1)
                 # do the circular shift
                 # LRU table update:
             if do_cache:
@@ -85,7 +85,7 @@ while current_step<= MAX_STEPS:
                     temp = np.delete(temp, np.where(temp == num))
                 location = temp[-1]
                 col = (location % 2) *3
-                row = (location - (location % 2)) / 2
+                row = int((location - (location % 2)) / 2)
                 mem_status[row, col] = request[i, 0]
                 mem_status[row, col + 1] = current_step
                 mem_status[row, col + 2] = request[i, 1]
@@ -96,7 +96,7 @@ while current_step<= MAX_STEPS:
                 position= [parent_has[0][0], parent_has[1][0]*3]
                 temp = 2*position[0] + int(position[1]/3)
                 rank = np.where(lru_rank == temp)
-                lru_rank[:,temp] = np.roll(lru_rank[:temp], 1)
+                lru_rank[:temp] = np.roll(lru_rank[:temp], 1)
 
             if edge2_has[0].shape != (0,):
                 position= [edge2_has[0][0], edge2_has[1][0]*3]
@@ -109,13 +109,14 @@ while current_step<= MAX_STEPS:
                 for num in edge1:
                     temp = np.delete(temp, np.where(temp == num))
                 location = temp[-1]
-                col = (location % 2) *3
+                col = (location % 2) * 3
                 row = (location - (location % 2)) / 2
                 mem_status[row, col] = request[i, 0]
                 mem_status[row, col + 1] = current_step
                 mem_status[row, col + 2] = request[i, 1]
 
-            
-            
-                
+    print(f'Step: {current_step}')
+    print(f'Next Requests: {data[current_step: current_step + 1].values}')
+    print(f'Memory Status: {mem_status}')
+    print(f'Reward: {reward}')
     current_step += 1
