@@ -4,6 +4,7 @@ import gym
 from gym import error, spaces, utils
 from gym.utils import seeding
 import gc
+import matplotlib.pyplot as plt
 class cache_env(gym.Env):
     metadata = {'render.modes': ['human']}
 
@@ -22,6 +23,7 @@ class cache_env(gym.Env):
         self.fresh_cost_weight= 1
         self.reward=0
         self.mem_slots= [0, 3]
+        self.episodes=[]
 
 
         """
@@ -62,6 +64,8 @@ class cache_env(gym.Env):
         return obs
     
     def step(self, action):
+        if self.current_step==0:
+            self.episodes=[]
         """
         before taking any action we need to check if the requested files are
         available in the memory if requested files are not stored in memory then
@@ -78,30 +82,48 @@ class cache_env(gym.Env):
                 edge2_has = np.where(self.mem_status[4:7, self.mem_slots] == request[i,0])
                 parent_has = np.where(self.mem_status[7:, self.mem_slots] == request[i,0])
                 if edge1_has[0].shape != (0,) and i==0:
-                    self.reward += self.MIN_COMMUN
                     fresh= self.current_step - self.mem_status[edge1_has[0][0]+1, (edge1_has[1][0]*3)+1]
                     # print('freshness is ' + str(fresh) )
                     # print('mem status is:')
                     # print(self.mem_status)
                     fresh /= self.mem_status[edge1_has[0][0]+1, (edge1_has[1][0]*3)+2]
-                    self.reward -= fresh
+                    if fresh>1:
+                        self.reward -= self.MAX_COMMUN
+                        self.mem_status[edge1_has[0][0]+1, (edge1_has[1][0]*3)+2] =0
+                        self.mem_status[edge1_has[0][0]+1, (edge1_has[1][0]*3)+1] =0
+                        self.mem_status[edge1_has[0][0]+1, (edge1_has[1][0]*3)] =0
+                    else:
+                        self.reward -= fresh
+                        self.reward += self.MIN_COMMUN
                 elif edge2_has[0].shape != (0,) and i==1:
-                    self.reward += self.MID_COMMUN
                     fresh= self.current_step - self.mem_status[edge2_has[0][0]+4, (edge2_has[1][0]*3)+1]
                     fresh /= self.mem_status[edge2_has[0][0]+4, (edge2_has[1][0]*3)+2]
-                    self.reward -= fresh
+                    if fresh>1:
+                        self.reward -= self.MAX_COMMUN
+                        self.mem_status[edge2_has[0][0]+4, (edge2_has[1][0]*3)+2] =0
+                        self.mem_status[edge2_has[0][0]+4, (edge2_has[1][0]*3)+1] =0
+                        self.mem_status[edge2_has[0][0]+4, (edge2_has[1][0]*3)] =0
+                    else:
+                        self.reward -= fresh
+                        self.reward += self.MIN_COMMUN
+                    
                 elif parent_has[0].shape != (0,):
-                    self.reward += self.MID_COMMUN
                     fresh= self.current_step - self.mem_status[parent_has[0][0]+7, (parent_has[1][0]*3)+1]
                     fresh /= self.mem_status[parent_has[0][0]+7, (parent_has[1][0]*3)+2]
-                    self.reward -= fresh
-
+                    if fresh>1:
+                        self.reward -= self.MAX_COMMUN
+                        self.mem_status[parent_has[0][0]+7, (parent_has[1][0]*3)+2] =0
+                        self.mem_status[parent_has[0][0]+7, (parent_has[1][0]*3)+1] =0
+                        self.mem_status[parent_has[0][0]+7, (parent_has[1][0]*3)] =0
+                    else:
+                        self.reward -= fresh
+                        self.reward += self.MID_COMMUN
 
         self._take_action(action)
         obs= self._next_observation()
         self.current_step += 1
         self.done = self.current_step > self.MAX_STEPS
-
+        self.episodes.append(self.reward)
         return obs, -self.reward, self.done, {}
 
 
@@ -141,3 +163,7 @@ class cache_env(gym.Env):
         print(f'Next Requests: {self.df.loc[self.current_step: self.current_step+1].values}')
         print(f'Memory Status: {self.mem_status}')
         print(f'Reward: {self.reward}')
+        if self.current_step==60 :
+            plt.plot(self.episodes)
+        print(len(self.episodes))
+            
