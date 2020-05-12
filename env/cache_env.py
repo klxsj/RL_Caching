@@ -17,9 +17,9 @@ class cache_env(gym.Env):
         self.done = False
         self.MEM_SIZE = 6
         self.MAX_STEPS = 500
-        self.MIN_COMMUN= -1
-        self.MID_COMMUN= -2
-        self.MAX_COMMUN= -3
+        self.MIN_COMMUN= 5
+        self.MID_COMMUN= 2
+        self.MAX_COMMUN= -1
         self.fresh_cost_weight= 1
         self.reward=0
         self.mem_slots= [0, 3]
