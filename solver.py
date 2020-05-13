@@ -15,10 +15,13 @@ df = pd.read_csv('./data/requests.csv')
 env = DummyVecEnv([lambda: cache_env(df)])
 
 model = PPO2(MlpPolicy, env, verbose=1)
-model.learn(total_timesteps=40000)
+#%%
+#model.learn(total_timesteps=40000)
+#%%
+model.load('ppo2_positive_rewards.zip')
 
 obs = env.reset()
-for i in range(20000):
+for i in range(501):
     action, _states = model.predict(obs)
     obs, rewards, done, info = env.step(action)
     env.render()
