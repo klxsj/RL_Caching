@@ -27,13 +27,9 @@ class cache_env(gym.Env):
 
 
         """
-        Whether to cache a Content in one of the 6 memory slots of BS1
-        Whether to cache a Content in one of the 6 memory slots of BS2
-        Whether to cache a Content in one of the first 6 memory slots of the parent
-        Whether to cache a Content in one of the second 6 memory slots of the parent
+        Defining Observation and Action Spaces
         """
-        self.action_space = spaces.Box(low=0, high= 1,#self.MEM_SIZE
-                                       shape=(8,), dtype= np.float16)
+        self.action_space = spaces.Discrete(156)
         self.observation_space= spaces.Box(
                                            low=0,
                                            high=40,
@@ -41,17 +37,6 @@ class cache_env(gym.Env):
                                            dtype= np.uint8
                                           )
 
-        """ observations are comprised of
-            * 2 requested files (int)
-            * The requested files' life-times (int)
-            * memory status and the freshness (integrated)
-                ** the files' id
-                ** time of generation (integer)
-                ** life time duration (integer)
-                ** we are implicitly aware of the memory status
-            * the BSs have the capacity to store 7 files
-            * the parent node has the capacity of 14 files
-        """
         
     def _next_observation(self):
         temp = self.df.loc[self.current_step: self.current_step+1].values
@@ -121,7 +106,7 @@ class cache_env(gym.Env):
 
         self._take_action(action)
         obs= self._next_observation()
-        self.current_step += 1
+        self.current_step += 2
         self.done = self.current_step > self.MAX_STEPS
         self.episodes.append(self.reward)
         return obs, -self.reward, self.done, {}
