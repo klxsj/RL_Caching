@@ -16,7 +16,7 @@ class cache_env(gym.Env):
         self.current_step = 0
         self.done = False
         self.MEM_SIZE = 6
-        self.MAX_STEPS = 500
+        self.MAX_STEPS = 50000
         self.MIN_COMMUN= 5
         self.MID_COMMUN= 2
         self.MAX_COMMUN= -1
@@ -124,7 +124,7 @@ class cache_env(gym.Env):
         self.current_step += 1
         self.done = self.current_step > self.MAX_STEPS
         self.episodes.append(self.reward)
-        return obs, -self.reward, self.done, {}
+        return obs, self.reward, self.done, {}
 
 
     def reset(self):
@@ -163,7 +163,7 @@ class cache_env(gym.Env):
         print(f'Next Requests: {self.df.loc[self.current_step: self.current_step+1].values}')
         print(f'Memory Status: {self.mem_status}')
         print(f'Reward: {self.reward}')
-        if self.current_step==60 :
+        if self.current_step==500 :
             plt.plot(self.episodes)
         print(len(self.episodes))
             

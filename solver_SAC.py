@@ -16,10 +16,15 @@ env = DummyVecEnv([lambda: cache_env(df)])
 
 model = SAC(MlpPolicy, env, verbose=1)
 model.learn(total_timesteps=40000)
-model.save("SAC")
 
+#
+model.save("SAC_new")
+#%% 
+#
+# load model
+#model = SAC.load("SAC")
 obs = env.reset()
-for i in range(20000):
+for i in range(500):
     action, _states = model.predict(obs)
     obs, rewards, done, info = env.step(action)
     env.render()
