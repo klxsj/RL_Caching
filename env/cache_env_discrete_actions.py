@@ -41,13 +41,13 @@ class cache_env(gym.Env):
                                            shape= (7,6),
                                            dtype= np.uint8
                                           )
-
+        print(self.observation_space.sample())
         
     def _next_observation(self):
         temp = self.df.loc[self.current_step].values
-        edge1_has = np.where(self.mem_status[0, :] == temp[0,0])
-        edge2_has = np.where(self.mem_status[2, :] == temp[0,0])
-        p_has = np.where(self.mem_status[4, :] ==  temp[0,0])
+        edge1_has = np.where(self.mem_status[0, :] == temp[0])
+        edge2_has = np.where(self.mem_status[2, :] == temp[0])
+        p_has = np.where(self.mem_status[4, :] ==  temp[0])
 
         if (edge1_has[0].shape != (0,)):
             edge1_has = 1
@@ -57,9 +57,10 @@ class cache_env(gym.Env):
             p_has = 1 
             
         self.which_BS = self.current_step % 2
-        self.line1 = np.array([temp[0,0], temp[0,1], edge1_has, 
+        self.line1 = np.array([temp[0], temp[1], edge1_has, 
                           edge2_has, p_has, self.which_BS]).reshape(1,6)
         obs = np.concatenate((self.line1, self.mem_status), axis=0)
+        obs = np.array(obs)
         return obs
     
     def step(self, action):
