@@ -24,7 +24,7 @@ class cache_env(gym.Env):
         self.MAX_COMMUN= -1
         self.fresh_cost_weight= 1
         self.reward=0
-        self.greedy_punishment = -2
+        self.greedy_punishment = 0
         self.mem_slots= [0, 2, 4]
         self.fresh_slots= [1, 3, 5]
         self.episodes=[]
@@ -143,7 +143,6 @@ class cache_env(gym.Env):
 
 
     def reset(self):
-        self.mem_status= np.zeros(shape=(9,6))
         self.current_step = 0
         self.done = False
         self.reward= 0
