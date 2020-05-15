@@ -89,10 +89,14 @@ class cache_env(gym.Env):
         if self.which_BS == 0:
             self.reward = e1 * self.MIN_COMMUN + p_has * self.MID_COMMUN
             if e1==1:
+                self.mem_status[0:2, :edge1_has[0][0]] = np.roll(self.mem_status[0:2, :edge1_has[0][0]], 1, axis=1)
+                self.freshness[0:2, :edge1_has[0][0]] = np.roll(self.mem_status[0:2, :edge1_has[0][0]], 1, axis=1)
                 self.reward -= self.mem_status[1, edge1_has[0][0]] #substract freshness cost
                 if sum(action)!=0:
                     self.reward += self.greedy_punishment * (e1 + p_has)
             elif p_has == 1:
+                self.mem_status[4:, :parent_has[0][0]] = np.roll(self.mem_status[2*i: 2*i+1, :parent_has[0][0]], 1, axis=1)
+                self.freshness[4:, :parent_has[0][0]] = np.roll(self.mem_status[2*i: 2*i+1, :parent_has[0][0]], 1, axis=1)
                 self.reward -= self.mem_status[5, parent_has[0][0]] #substract freshness cost
                 if sum(action)!=0:
                     self.reward += self.greedy_punishment
@@ -104,10 +108,14 @@ class cache_env(gym.Env):
         elif self.which_BS ==1:
             self.reward = e2 * self.MIN_COMMUN + p_has * self.MID_COMMUN
             if e2==1:
+                self.mem_status[2:4, :edge2_has[0][0]] = np.roll(self.mem_status[2:4, :edge2_has[0][0]], 1, axis=1)
+                self.freshness[2:4, :edge2_has[0][0]] = np.roll(self.mem_status[2:4, :edge2_has[0][0]], 1, axis=1)
                 self.reward -= self.mem_status[3, edge2_has[0][0]] #substract freshness cost
                 if sum(action)!=0:
                     self.reward += self.greedy_punishment * (e2 + p_has)
             elif p_has == 1:
+                self.mem_status[4:, :parent_has[0][0]] = np.roll(self.mem_status[2*i: 2*i+1, :parent_has[0][0]], 1, axis=1)
+                self.freshness[4:, :parent_has[0][0]] = np.roll(self.mem_status[2*i: 2*i+1, :parent_has[0][0]], 1, axis=1)
                 self.reward -= self.mem_status[5, parent_has[0][0]] #substract freshness cost
                 if sum(action)!=0:
                     self.reward += self.greedy_punishment
