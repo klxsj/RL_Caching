@@ -24,6 +24,7 @@ class cache_env(gym.Env):
         self.MAX_COMMUN= -1
         self.fresh_cost_weight= 1
         self.reward=0
+        self.greedy_punishment = -2
         self.mem_slots= [0, 2, 4]
         self.fresh_slots= [1, 3, 5]
         self.episodes=[]
@@ -62,18 +63,15 @@ class cache_env(gym.Env):
         return obs
     
     def step(self, action):
+        """ Calculating the reward"""
         self.reward = 0
         if self.current_step==0:
             self.episodes=[]
-        """
-        before taking any action we need to check if the requested files are
-        available in the memory. if requested files are not stored in memory then
-        consider caching take and action return the *reward* and the new *observation*
-        """
+        
         request = self.df.loc[self.current_step].values
-        edge1_has = np.where(self.mem_status[0, :] == request[0,0])
-        edge2_has = np.where(self.mem_status[2, :] == request[0,0])
-        parent_has = np.where(self.mem_status[4, :] == request[0,0])
+        edge1_has = np.where(self.mem_status[0, :] == request[0])
+        edge2_has = np.where(self.mem_status[2, :] == request[0])
+        parent_has = np.where(self.mem_status[4, :] == request[0])
         if (edge1_has[0].shape != (0,)):
             e1 = 1
         if (edge2_has[0].shape != (0,)):
@@ -82,15 +80,22 @@ class cache_env(gym.Env):
             p_has = 1
             
         for i in range(3):
-            self.avg_fresh += (self.freshness[2*i+1,:] - self.freshness[2*i,:])/6
+            a = self.current_step - self.freshness[2*i,:]
+            b = self.freshness[2*i +1,:]
+            c = np.divide(a, b, where=b!=0) 
+            self.avg_fresh += sum(c)/6
         
       #  calculate the reward for each case       
         if self.which_BS == 0:
             self.reward = e1 * self.MIN_COMMUN + p_has * self.MID_COMMUN
             if e1==1:
                 self.reward -= self.mem_status[1, edge1_has[0][0]] #substract freshness cost
+                if sum(action)!=0:
+                    self.reward += self.greedy_punishment * (e1 + p_has)
             elif p_has == 1:
                 self.reward -= self.mem_status[5, parent_has[0][0]] #substract freshness cost
+                if sum(action)!=0:
+                    self.reward += self.greedy_punishment
             else:
                 self.reward += self.MAX_COMMUN()
                 
@@ -100,18 +105,27 @@ class cache_env(gym.Env):
             self.reward = e2 * self.MIN_COMMUN + p_has * self.MID_COMMUN
             if e2==1:
                 self.reward -= self.mem_status[3, edge2_has[0][0]] #substract freshness cost
+                if sum(action)!=0:
+                    self.reward += self.greedy_punishment * (e2 + p_has)
             elif p_has == 1:
                 self.reward -= self.mem_status[5, parent_has[0][0]] #substract freshness cost
+                if sum(action)!=0:
+                    self.reward += self.greedy_punishment
             else:
                 self.reward += self.MAX_COMMUN()
     
             self.reward -= self.avg_fresh   
-        
+            
+            
+        """" Removing the expired content from cache """
         expired = np.where(self.mem_status[self.fresh_slots, :] >= 1)
         self.mem_status[expired[0]*2, expired[1]] = 0 
-        self.mem_status[expired[0]*2 + 1, expired[1]] = 0 
+        self.mem_status[expired[0]*2 + 1, expired[1]] = 0
+        self.freshness[expired[0]*2, expired[1]] = 0 
+        self.freshness[expired[0]*2 + 1, expired[1]] = 0
         
-
+        
+        """ Calling the required functions and returning the obs & reward"""
         self._take_action(action)
         obs= self._next_observation()
         self.current_step += 1
@@ -125,28 +139,36 @@ class cache_env(gym.Env):
         self.current_step = 0
         self.done = False
         self.reward= 0
+        self.mem_status= np.zeros(shape=(6,6))
+        self.freshness= np.zeros(shape=(6,6))
+        self.line1= np.zeros(shape=(1,6))
         return self._next_observation()
 
 
     def _take_action(self, action):
-        #print('action in _take_action() is:')
-        #print(action)
-        #action =  action.astype(int)#round(action).astype(int)
-        request = self.df.loc[self.current_step : self.current_step+1 ].values
-        for i in range(2):
-            act = action[i*4:4+4*i]
-            # print('action in for ' + str(i) + 'th request is: ')
-            # print(act)
-            for j in range(4):
-                act0 = act[j]
-                if act0 > 0:
-                    row = int((act0-1)/2)
-                    row += (2*j) +1
-                    col= (act0-1)%2
-                    col*= 3
-                    self.mem_status[row, col] = request[i,0]
-                    self.mem_status[row, col+1] = self.current_step
-                    self.mem_status[row, col+2] = request[i,1]
+        request = self.df.loc[self.current_step].values
+        for i in range(len(action)):
+            if action[i]== 1:
+                empty = np.where(self.mem_status[2*i, :]== 0)
+                if empty[0].shape != (0,) :
+                    self.mem_status[2*i, empty[0][-1]] = request[0]
+                    self.mem_status[2*i+1, empty[0][-1]] = 0
+                    self.freshness[2*i, empty[0][-1]] = self.current_step
+                    self.freshness[2*i+1, empty[0][-1]] = request[1]
+                    self.mem_status[2*i: 2*i+1, :empty[0][-1]+1] = np.roll(self.mem_status[2*i: 2*i+1, :empty[0][-1]+1], 1, axis=1)
+                    self.freshness[2*i: 2*i+1, :empty[0][-1]+1] = np.roll(self.freshness[2*i: 2*i+1, :empty[0][-1]+1], 1, axis=1)
+                else:
+                    self.mem_status[2*i, -1] = request[0]
+                    self.mem_status[2*i+1, -1] = 0
+                    self.freshness[2*i, -1] = self.current_step
+                    self.freshness[2*i+1, -1] = request[1]
+                    self.mem_status[2*i: 2*i+1, :] = np.roll(self.mem_status[2*i: 2*i+1, :], 1, axis=1)
+                    self.freshness[2*i: 2*i+1, :] = np.roll(self.freshness[2*i: 2*i+1, :], 1, axis=1)
+                    
+                    
+                
+                
+                
                 
             
             
