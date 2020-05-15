@@ -24,7 +24,8 @@ class cache_env(gym.Env):
         self.MAX_COMMUN= -1
         self.fresh_cost_weight= 1
         self.reward=0
-        self.mem_slots= [0, 3]
+        self.mem_slots= [0, 2, 4]
+        self.fresh_slots= [1, 3, 5]
         self.episodes=[]
         self.line1= np.zeros(shape=(1,6))
 
@@ -43,9 +44,9 @@ class cache_env(gym.Env):
         
     def _next_observation(self):
         temp = self.df.loc[self.current_step].values
-        edge1_has = np.where(self.mem_status[1:4, self.mem_slots] == temp[0,0])
-        edge2_has = np.where(self.mem_status[4:7, self.mem_slots] == temp[0,0])
-        p_has = np.where(self.mem_status[7:, self.mem_slots] ==  temp[0,0])
+        edge1_has = np.where(self.mem_status[0, :] == temp[0,0])
+        edge2_has = np.where(self.mem_status[2, :] == temp[0,0])
+        p_has = np.where(self.mem_status[4, :] ==  temp[0,0])
 
         if (edge1_has[0].shape != (0,)):
             edge1_has = 1
@@ -70,82 +71,51 @@ class cache_env(gym.Env):
         consider caching take and action return the *reward* and the new *observation*
         """
         request = self.df.loc[self.current_step].values
-        edge1_has = np.where(self.mem_status[:3, self.mem_slots] == request[0,0])
-        edge2_has = np.where(self.mem_status[3:6, self.mem_slots] == request[0,0])
-        parent_has = np.where(self.mem_status[6:, self.mem_slots] == request[0,0])
+        edge1_has = np.where(self.mem_status[0, :] == request[0,0])
+        edge2_has = np.where(self.mem_status[2, :] == request[0,0])
+        parent_has = np.where(self.mem_status[4, :] == request[0,0])
         if (edge1_has[0].shape != (0,)):
             e1 = 1
         if (edge2_has[0].shape != (0,)):
             e2 = 1
-        if (p_has[0].shape != (0,)):
-            p_has = 1 
+        if (parent_has[0].shape != (0,)):
+            p_has = 1
             
         for i in range(3):
             self.avg_fresh += (self.freshness[2*i+1,:] - self.freshness[2*i,:])/6
         
-        
+      #  calculate the reward for each case       
         if self.which_BS == 0:
-            """ calculate the reward"""
             self.reward = e1 * self.MIN_COMMUN + p_has * self.MID_COMMUN
             if e1==1:
-                self.reward += 
+                self.reward -= self.mem_status[1, edge1_has[0][0]] #substract freshness cost
             elif p_has == 1:
-                self.reward +=
-                
-            self.reward -= self.avg_fresh * 0.33
-        elif self.which_BS ===1:
-            """ """
-        
-        for i in range(2):
-            if sum(action[i*4:4+4*i])!=0:
-                self.reward+= self.MAX_COMMUN
+                self.reward -= self.mem_status[5, parent_has[0][0]] #substract freshness cost
             else:
-                edge1_has = np.where(self.mem_status[1:4, self.mem_slots] == request[i,0])
-                edge2_has = np.where(self.mem_status[4:7, self.mem_slots] == request[i,0])
-                parent_has = np.where(self.mem_status[7:, self.mem_slots] == request[i,0])
-                if edge1_has[0].shape != (0,) and i==0:
-                    fresh= self.current_step - self.mem_status[edge1_has[0][0]+1, (edge1_has[1][0]*3)+1]
-                    # print('freshness is ' + str(fresh) )
-                    # print('mem status is:')
-                    # print(self.mem_status)
-                    fresh /= self.mem_status[edge1_has[0][0]+1, (edge1_has[1][0]*3)+2]
-                    if fresh>1:
-                        self.reward -= self.MAX_COMMUN
-                        self.mem_status[edge1_has[0][0]+1, (edge1_has[1][0]*3)+2] =0
-                        self.mem_status[edge1_has[0][0]+1, (edge1_has[1][0]*3)+1] =0
-                        self.mem_status[edge1_has[0][0]+1, (edge1_has[1][0]*3)] =0
-                    else:
-                        self.reward -= fresh
-                        self.reward += self.MIN_COMMUN
-                elif edge2_has[0].shape != (0,) and i==1:
-                    fresh= self.current_step - self.mem_status[edge2_has[0][0]+4, (edge2_has[1][0]*3)+1]
-                    fresh /= self.mem_status[edge2_has[0][0]+4, (edge2_has[1][0]*3)+2]
-                    if fresh>1:
-                        self.reward -= self.MAX_COMMUN
-                        self.mem_status[edge2_has[0][0]+4, (edge2_has[1][0]*3)+2] =0
-                        self.mem_status[edge2_has[0][0]+4, (edge2_has[1][0]*3)+1] =0
-                        self.mem_status[edge2_has[0][0]+4, (edge2_has[1][0]*3)] =0
-                    else:
-                        self.reward -= fresh
-                        self.reward += self.MIN_COMMUN
-                    
-                elif parent_has[0].shape != (0,):
-                    fresh= self.current_step - self.mem_status[parent_has[0][0]+7, (parent_has[1][0]*3)+1]
-                    fresh /= self.mem_status[parent_has[0][0]+7, (parent_has[1][0]*3)+2]
-                    if fresh>1:
-                        self.reward -= self.MAX_COMMUN
-                        self.mem_status[parent_has[0][0]+7, (parent_has[1][0]*3)+2] =0
-                        self.mem_status[parent_has[0][0]+7, (parent_has[1][0]*3)+1] =0
-                        self.mem_status[parent_has[0][0]+7, (parent_has[1][0]*3)] =0
-                    else:
-                        self.reward -= fresh
-                        self.reward += self.MID_COMMUN
+                self.reward += self.MAX_COMMUN()
+                
+            self.reward -= self.avg_fresh
+            
+        elif self.which_BS ==1:
+            self.reward = e2 * self.MIN_COMMUN + p_has * self.MID_COMMUN
+            if e2==1:
+                self.reward -= self.mem_status[3, edge2_has[0][0]] #substract freshness cost
+            elif p_has == 1:
+                self.reward -= self.mem_status[5, parent_has[0][0]] #substract freshness cost
+            else:
+                self.reward += self.MAX_COMMUN()
+    
+            self.reward -= self.avg_fresh   
+        
+        expired = np.where(self.mem_status[self.fresh_slots, :] >= 1)
+        self.mem_status[expired[0]*2, expired[1]] = 0 
+        self.mem_status[expired[0]*2 + 1, expired[1]] = 0 
+        
 
         self._take_action(action)
         obs= self._next_observation()
         self.current_step += 1
-        self.done = self.current_step > self.MAX_STEPS*2
-        self
+        self.done = self.current_step > self.MAX_STEPS
         self.episodes.append(self.reward)
         return obs, self.reward, self.done, {}
 
