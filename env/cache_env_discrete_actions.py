@@ -14,6 +14,7 @@ class cache_env(gym.Env):
         self.df = requests_df
         self.mem_status= np.zeros(shape=(6,6))
         self.freshness= np.zeros(shape=(6,6))
+        self.avg_fresh= 0
         self.current_step = 0
         self.done = False
         self.MEM_SIZE = 6
@@ -25,12 +26,13 @@ class cache_env(gym.Env):
         self.reward=0
         self.mem_slots= [0, 3]
         self.episodes=[]
+        self.line1= np.zeros(shape=(1,6))
 
 
         """
         Defining Observation and Action Spaces
         """
-        self.action_space = gym.spaces.Box(low=0, high=1, shape=(3,), dtype= np.uint8)
+        self.action_space = spaces.Box(low=0, high=1, shape=(3,), dtype= np.uint8)
         self.observation_space= spaces.Box(
                                            low=0,
                                            high=40,
@@ -40,27 +42,26 @@ class cache_env(gym.Env):
 
         
     def _next_observation(self):
-        temp = self.df.loc[self.current_step: self.current_step+1].values
+        temp = self.df.loc[self.current_step].values
         edge1_has = np.where(self.mem_status[1:4, self.mem_slots] == temp[0,0])
-        edge2_has = np.where(self.mem_status[4:7, self.mem_slots] == temp[1,0])
+        edge2_has = np.where(self.mem_status[4:7, self.mem_slots] == temp[0,0])
+        p_has = np.where(self.mem_status[7:, self.mem_slots] ==  temp[0,0])
+
         if (edge1_has[0].shape != (0,)):
             edge1_has = 1
         if (edge2_has[0].shape != (0,)):
             edge2_has = 1
-        p_has1 = np.where(self.mem_status[7:, self.mem_slots] ==  temp[0,0])
-        p_has2 = np.where(self.mem_status[7:, self.mem_slots] ==  temp[1,0])
-        if (p_has1[0].shape != (0,)):
-            p_has1 = 1 
-        if (p_has2[0].shape != (0,)):
-            p_has2 = 1
-        cached1= edge1_has or p_has1
-        cached2= edge2_has or p_has2
-        self.mem_status[0,:] = np.array([temp[0,0],  temp[0,1], cached1, 
-                                         temp[1,0], temp[1,1], cached2])
-        obs = self.mem_status
+        if (p_has[0].shape != (0,)):
+            p_has = 1 
+            
+        self.which_BS = self.current_step % 2
+        self.line1 = np.array([temp[0,0], temp[0,1], edge1_has, 
+                          edge2_has, p_has, self.which_BS]).reshape(1,6)
+        obs = np.concatenate((self.line1, self.mem_status), axis=0)
         return obs
     
     def step(self, action):
+        self.reward = 0
         if self.current_step==0:
             self.episodes=[]
         """
@@ -68,7 +69,33 @@ class cache_env(gym.Env):
         available in the memory. if requested files are not stored in memory then
         consider caching take and action return the *reward* and the new *observation*
         """
-        request = self.df.loc[self.current_step : self.current_step+1 ].values
+        request = self.df.loc[self.current_step].values
+        edge1_has = np.where(self.mem_status[:3, self.mem_slots] == request[0,0])
+        edge2_has = np.where(self.mem_status[3:6, self.mem_slots] == request[0,0])
+        parent_has = np.where(self.mem_status[6:, self.mem_slots] == request[0,0])
+        if (edge1_has[0].shape != (0,)):
+            e1 = 1
+        if (edge2_has[0].shape != (0,)):
+            e2 = 1
+        if (p_has[0].shape != (0,)):
+            p_has = 1 
+            
+        for i in range(3):
+            self.avg_fresh += (self.freshness[2*i+1,:] - self.freshness[2*i,:])/6
+        
+        
+        if self.which_BS == 0:
+            """ calculate the reward"""
+            self.reward = e1 * self.MIN_COMMUN + p_has * self.MID_COMMUN
+            if e1==1:
+                self.reward += 
+            elif p_has == 1:
+                self.reward +=
+                
+            self.reward -= self.avg_fresh * 0.33
+        elif self.which_BS ===1:
+            """ """
+        
         for i in range(2):
             if sum(action[i*4:4+4*i])!=0:
                 self.reward+= self.MAX_COMMUN
