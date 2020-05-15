@@ -82,7 +82,8 @@ class cache_env(gym.Env):
         for i in range(3):
             a = self.current_step - self.freshness[2*i,:]
             b = self.freshness[2*i +1,:]
-            c = np.divide(a, b, where=b!=0) 
+            c = np.divide(a, b, where=b!=0)
+            self.mem_status[2*i+1, :] = c
             self.avg_fresh += sum(c)/6
         
       #  calculate the reward for each case       
