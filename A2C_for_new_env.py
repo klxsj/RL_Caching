@@ -20,10 +20,10 @@ df = pd.read_csv('./data/challenging_popularity.csv')
 env = DummyVecEnv([lambda: cache_env(df)])
 
 #%%
-model = A2C('MlpPolicy', env)
+model = A2C('MlpPolicy', env, gamma= 0.88, n_steps= 18, learning_rate=0.01, alpha=0.9, epsilon=1e-04, lr_schedule='double_middle_drop')
 #model.load('A2C_cache.zip')
 #%%
-model.learn(total_timesteps=20000)
+model.learn(total_timesteps=100000)
 #%%
 model.save('A2C_new_env')
 #%%
