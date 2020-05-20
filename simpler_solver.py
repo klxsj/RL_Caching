@@ -13,16 +13,15 @@ import pandas as pd
 
 df = pd.read_csv('./data/requests.csv')
 
-<<<<<<< HEAD
-#env = cache_env(df)
-=======
->>>>>>> 90632ef5b0fb93f3a612159fc774a6b1674cde70
+# env = cache_env(df)
+
 env = DummyVecEnv([lambda: cache_env(df)])
 
+model = A2C('MlpPolicy', env, gamma= 0.88, n_steps= 18, learning_rate=0.01, alpha=0.9, epsilon=1e-04, lr_schedule='double_middle_drop')
+# model.load('A2C_cache.zip')
 #%%
-model = A2C('MlpPolicy', env)
 model.learn(total_timesteps=20000)
-model.save('A2C_new')
+# model.save('A2C_optimize')
 #%%
 #model = A2C('MlpPolicy', env)
 #model.load('A2C_cache.zip')
@@ -32,7 +31,7 @@ model.save('A2C_new')
 #rewards=[]
 
 obs = env.reset()
-for i in range(65):
+for i in range(500):
     action, _states = model.predict(obs)
     obs, rewards, done, info = env.step(action)
     #r.append(rewards)
