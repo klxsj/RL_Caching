@@ -34,7 +34,8 @@ class cache_env(gym.Env):
         """
         Defining Observation and Action Spaces
         """
-        self.action_space = spaces.Box(low=0, high=1, shape=(3,), dtype= np.uint8)
+        self.action_space = spaces.Discrete(7)
+        # self.action_space = spaces.Box(low=0, high=1, shape=(3,), dtype= np.uint8)
         self.observation_space= spaces.Box(
                                            low=0,
                                            high=40,
@@ -70,7 +71,9 @@ class cache_env(gym.Env):
         return obs
     
     def step(self, action):
-        utilization = 0
+        under_utilized = 0
+        # action = np.array(action).astype(np.uint8)
+        # action = np.unpackbits(action, bitorder='little')
         # action = np.round(action)
         """ Calculating the reward"""
         self.reward = 0
@@ -105,14 +108,14 @@ class cache_env(gym.Env):
                 self.mem_status[0:2, :edge1_has[0][0]] = np.roll(self.mem_status[0:2, :edge1_has[0][0]], 1, axis=1)
                 self.freshness[0:2, :edge1_has[0][0]] = np.roll(self.mem_status[0:2, :edge1_has[0][0]], 1, axis=1)
                 self.reward -= self.mem_status[1, edge1_has[0][0]] #substract freshness cost
-                if sum(action)!=0:
-                    self.reward += self.greedy_punishment * (e1 + p_has)
+                # if sum(action)!=0:
+                #     self.reward += self.greedy_punishment * (e1 + p_has)
             elif p_has == 1:
                 self.mem_status[4:, :parent_has[0][0]] = np.roll(self.mem_status[2*i: 2*i+1, :parent_has[0][0]], 1, axis=1)
                 self.freshness[4:, :parent_has[0][0]] = np.roll(self.mem_status[2*i: 2*i+1, :parent_has[0][0]], 1, axis=1)
                 self.reward -= self.mem_status[5, parent_has[0][0]] #substract freshness cost
-                if sum(action)!=0:
-                    self.reward += self.greedy_punishment
+                # if sum(action)!=0:
+                #     self.reward += self.greedy_punishment
             else:
                 self.reward += self.MAX_COMMUN
                 
@@ -130,8 +133,8 @@ class cache_env(gym.Env):
                 self.mem_status[4:, :parent_has[0][0]] = np.roll(self.mem_status[2*i: 2*i+1, :parent_has[0][0]], 1, axis=1)
                 self.freshness[4:, :parent_has[0][0]] = np.roll(self.mem_status[2*i: 2*i+1, :parent_has[0][0]], 1, axis=1)
                 self.reward -= self.mem_status[5, parent_has[0][0]] #substract freshness cost
-                if sum(action)!=0:
-                    self.reward += self.greedy_punishment
+                # if sum(action)!=0:
+                #     self.reward += self.greedy_punishment
             else:
                 self.reward += self.MAX_COMMUN
     
@@ -174,10 +177,12 @@ class cache_env(gym.Env):
 
     def _take_action(self, action):
         # action = np.round(action)
-        self.action = action
+        action_final = np.array(action).astype(np.uint8)
+        action_final = np.unpackbits(action, bitorder='little')
+        self.action = action_final
         request = self.df.loc[self.current_step].values
-        for i in range(len(action)):
-            if action[i]== 1:
+        for i in range(3):
+            if action_final[i]== 1:
                 empty = np.where(self.mem_status[2*i, :]== 0)
                 if empty[0].shape != (0,) :
                     self.mem_status[2*i, empty[0][-1]] = request[0]
