@@ -1,8 +1,10 @@
 import gym
 
-from stable_baselines.common.policies import MlpPolicy
+from stable_baselines.common.policies import MlpLstmPolicy
 from stable_baselines.common.vec_env import DummyVecEnv
+# from stable_baselines.common.schedules import LinearSchedule as lr
 from stable_baselines import A2C
+# from stable_baselines import PPO2
 from pandas.plotting import register_matplotlib_converters
 from stable_baselines.common.vec_env import DummyVecEnv
 register_matplotlib_converters()
@@ -20,10 +22,14 @@ df = pd.read_csv('./data/challenging_popularity.csv')
 env = DummyVecEnv([lambda: cache_env(df)])
 
 #%%
-model = A2C('MlpPolicy', env, gamma= 0.88, n_steps= 18, learning_rate=0.01, alpha=0.9, epsilon=1e-04, lr_schedule='double_middle_drop')
+model = A2C('MlpLstmPolicy', env, gamma= 0.95 , n_steps= 52, learning_rate=0.0025, alpha=0.98, epsilon=5e-05, lr_schedule='linear')
+#A2C('MlpPolicy', env, gamma= 0.9, n_steps= 18, learning_rate=0.00095)
+#A2C('MlpLstmPolicy', env, gamma= 0.9, n_steps= 18, learning_rate=0.01, alpha=0.9, epsilon=1e-05, lr_schedule='linear')
 #model.load('A2C_cache.zip')
+#model.load(
+# model.load('A2C_new_env')
 #%%
-model.learn(total_timesteps=100000)
+model.learn(total_timesteps=200000)
 #%%
 model.save('A2C_new_env')
 #%%
@@ -31,14 +37,23 @@ model.save('A2C_new_env')
 #model.load('A2C_cache.zip')
 
 #%%
-#r=[]
-#rewards=[]
+r=[]
+rewards=[]
 
 obs = env.reset()
 for i in range(500):
-    action, _states = model.predict(obs)
+    print('')
+    print('')
+    print('----------------------------------------------')
+    print(obs)
+    print("")
+    action, _states = model.predict(obs, deterministic= True)
+    print(f'Action : {action}')
+    print("")
     obs, rewards, done, info = env.step(action)
-    #r.append(rewards)
+    print(f'Rewards : {rewards}')
+    # print("")
+    r.append(rewards)
     env.render()
 
 #import matplotlib.pyplot as plt
