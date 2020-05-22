@@ -19,8 +19,8 @@ class cache_env(gym.Env):
         self.done = False
         self.MEM_SIZE = 6
         self.MAX_STEPS = 200000
-        self.MIN_COMMUN= 5
-        self.MID_COMMUN= 2
+        self.MIN_COMMUN= 6
+        self.MID_COMMUN= 4.5
         self.MAX_COMMUN= -3
         self.fresh_cost_weight= 1
         self.reward=0.0
@@ -28,13 +28,14 @@ class cache_env(gym.Env):
         self.mem_slots= [0, 2, 4]
         self.fresh_slots= [1, 3, 5]
         self.episodes=[]
+        self.episodes_avg_fresh=[]
         self.line1= np.zeros(shape=(1,6))
 
 
         """
         Defining Observation and Action Spaces
         """
-        self.action_space = spaces.Discrete(7)
+        self.action_space = spaces.Discrete(8)
         self.observation_space= spaces.Box(
                                            low=0,
                                            high=40,
@@ -94,7 +95,11 @@ class cache_env(gym.Env):
         for i in range(3):
             a12 = self.current_step - self.freshness[2*i,:]
             b12 = self.freshness[2*i +1,:]
-            c12 = np.divide(a12, b12, where=b12!=0)
+            c12= np.zeros_like(b12)
+            for j in range(len(b12)):
+                if b12[j]>=1:
+                    c12[j]= a12[j]/ b12[j]
+                    # c12 = c12.reshape(6,1)
             self.mem_status[2*i+1, :] = c12
             self.avg_fresh += sum(c12)/6
         
@@ -103,39 +108,39 @@ class cache_env(gym.Env):
             self.reward = e1 * self.MIN_COMMUN + p_has * self.MID_COMMUN
             if e1==1:
                 self.mem_status[0:2, :edge1_has[0][0]] = np.roll(self.mem_status[0:2, :edge1_has[0][0]], 1, axis=1)
-                self.freshness[0:2, :edge1_has[0][0]] = np.roll(self.mem_status[0:2, :edge1_has[0][0]], 1, axis=1)
+                self.freshness[0:2, :edge1_has[0][0]] = np.roll(self.freshness[0:2, :edge1_has[0][0]], 1, axis=1)
                 self.reward -= self.mem_status[1, edge1_has[0][0]] #substract freshness cost
                 if action!=0:
                     self.reward += self.greedy_punishment * (e1 + p_has)
             elif p_has == 1:
                 self.mem_status[4:, :parent_has[0][0]] = np.roll(self.mem_status[2*i: 2*i+1, :parent_has[0][0]], 1, axis=1)
-                self.freshness[4:, :parent_has[0][0]] = np.roll(self.mem_status[2*i: 2*i+1, :parent_has[0][0]], 1, axis=1)
+                self.freshness[4:, :parent_has[0][0]] = np.roll(self.freshness[4: 2*i+1, :parent_has[0][0]], 1, axis=1)
                 self.reward -= self.mem_status[5, parent_has[0][0]] #substract freshness cost
                 if action!=0:
                     self.reward += self.greedy_punishment
             else:
                 self.reward += self.MAX_COMMUN
                 
-            self.reward -= self.avg_fresh
+            # self.reward -= self.avg_fresh
             
         elif self.which_BS ==1:
             self.reward = e2 * self.MIN_COMMUN + p_has * self.MID_COMMUN
             if e2==1:
                 self.mem_status[2:4, :edge2_has[0][0]] = np.roll(self.mem_status[2:4, :edge2_has[0][0]], 1, axis=1)
-                self.freshness[2:4, :edge2_has[0][0]] = np.roll(self.mem_status[2:4, :edge2_has[0][0]], 1, axis=1)
+                self.freshness[2:4, :edge2_has[0][0]] = np.roll(self.freshness[2:4, :edge2_has[0][0]], 1, axis=1)
                 self.reward -= self.mem_status[3, edge2_has[0][0]] #substract freshness cost
                 if action!=0:
                     self.reward += self.greedy_punishment * (e2 + p_has)
             elif p_has == 1:
-                self.mem_status[4:, :parent_has[0][0]] = np.roll(self.mem_status[2*i: 2*i+1, :parent_has[0][0]], 1, axis=1)
-                self.freshness[4:, :parent_has[0][0]] = np.roll(self.mem_status[2*i: 2*i+1, :parent_has[0][0]], 1, axis=1)
+                self.mem_status[4:, :parent_has[0][0]] = np.roll(self.mem_status[4: , :parent_has[0][0]], 1, axis=1)
+                self.freshness[4:, :parent_has[0][0]] = np.roll(self.freshness[4: , :parent_has[0][0]], 1, axis=1)
                 self.reward -= self.mem_status[5, parent_has[0][0]] #substract freshness cost
                 if action!=0:
                     self.reward += self.greedy_punishment
             else:
                 self.reward += self.MAX_COMMUN
     
-            self.reward -= self.avg_fresh   
+            # self.reward -= self.avg_fresh   
             
             
         """" Removing the expired content from cache """
@@ -152,8 +157,9 @@ class cache_env(gym.Env):
         self._take_action(action)
         
         under_utilized = np.where(self.mem_status[self.mem_slots, :] == 0)
-        under_utilized = max(under_utilized[0].shape[0], under_utilized[1].shape[0])#/9
-        under_utilized = np.clip(under_utilized, 0, 2)
+        under_utilized = max(under_utilized[0].shape[0], under_utilized[1].shape[0])
+        under_utilized /= 4
+        # under_utilized = np.clip(under_utilized, 0, 3)
         self.reward -= under_utilized
         # self.reward = np.clip(self.reward, -21, 100)
         
@@ -162,6 +168,7 @@ class cache_env(gym.Env):
         self.current_step += 1
         self.done = self.current_step >= self.MAX_STEPS
         self.episodes.append(self.reward)
+        self.episodes_avg_fresh.append(self.avg_fresh)
         return obs, self.reward, self.done, {}
 
 
@@ -222,8 +229,13 @@ class cache_env(gym.Env):
         fresh2 = np.around(self.freshness, decimals=3)
         print(f'Freshnes: {fresh2}')
         print(f'Reward: {self.reward}')
-        if self.current_step== 500 :
+        if self.current_step == 499 :
+            plt.title('rewards in each step')
             plt.plot(self.episodes)
+            plt.show()
+            plt.title('average freshness in each step (lower is better)')
+            plt.plot(self.episodes_avg_fresh)
+            plt.show()
             print(f'first reward: {self.episodes[0]}')
             print(f'lastreward: {self.episodes[-1]}')
             

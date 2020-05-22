@@ -9,13 +9,15 @@ import numpy as np
 import pandas as pd
 import gc
 
-data = pd.read_csv('./data/requests.csv')
+data = pd.read_csv('./data/challenging_popularity.csv')
 
 """ take a look at the shape"""
 
 mem_status = np.zeros(shape=(9,6)) 
 current_step = 0
 mem_slots= [0, 3]
+gen_slots= [1, 4]
+life_slots=[2, 5]
 done = False
 MAX_STEPS = 500
 MIN_COMMUN= 5
@@ -28,6 +30,8 @@ reward=0
 cache_count =0
 lru_rank = np.array(range(18))
 rewards=[]
+utilization=[]
+avg_freshness=[]
 
 while current_step<= MAX_STEPS:
     request = data.loc[current_step : current_step+1].values
@@ -37,15 +41,25 @@ while current_step<= MAX_STEPS:
     # update the table (considering life-time):
     # life = current_step - mem_status[:, [1,4]]
     # expire = life > mem_status[:, [2,5]]
-    
-    
-    
+     
     for i in range(2):
         edge1_has = np.where(mem_status[0:3, mem_slots] == request[i,0])
         edge2_has = np.where(mem_status[3:6, mem_slots] == request[i,0])
         parent_has = np.where(mem_status[6:, mem_slots] == request[i,0])
         do_cache = True
-        
+        not_utilized = (mem_status[:,mem_slots]==0).sum()
+        utilization.append((18- not_utilized)/18)
+        b12= current_step - mem_status[:, gen_slots]
+        c12= np.zeros_like(b12)
+        for j in range(mem_status.shape[0]):
+            for j1 in range(2):
+                if mem_status[j, 3*j1+2]>=1:
+                    c12[j, j1] = b12[j, j1] / mem_status[j, 3*j1+2]
+        avg_freshness.append(sum(sum(c12))/18)
+        reward -= not_utilized
+
+
+    
         if edge1_has[0].shape != (0,) and i==0:
             reward += MIN_COMMUN
             fresh= current_step - mem_status[edge1_has[0][0], (edge1_has[1][0]*3)+1]
@@ -82,6 +96,7 @@ while current_step<= MAX_STEPS:
             else:
                 reward -= fresh
                 reward += MIN_COMMUN
+                
            
             """ The work in progress"""
     # LRU table update:
@@ -159,6 +174,19 @@ while current_step<= MAX_STEPS:
     print(f'Memory Status: {mem_status}')
     print(f'Reward: {reward}')
     current_step += 1
-
+#%%
 import matplotlib.pyplot as plt
+plt.title('accumulated rewards LRU')
 plt.plot(rewards)
+plt.show()
+
+plt.title('average freshness in each step')
+avg_freshness = np.array(avg_freshness)
+avg_freshness /= 3
+plt.plot(avg_freshness)
+plt.show()
+plt.title('average utilization in each step (higher is better)')
+utilization = np.array(utilization)
+print(f'Avg Utilization: {np.mean(utilization)}')
+plt.plot(utilization)
+plt.show()

@@ -3,7 +3,7 @@ import gym
 from stable_baselines.common.policies import MlpLstmPolicy
 from stable_baselines.common.vec_env import DummyVecEnv
 # from stable_baselines.common.schedules import LinearSchedule as lr
-from stable_baselines import A2C
+from stable_baselines import ACER
 # from stable_baselines import PPO2
 from pandas.plotting import register_matplotlib_converters
 from stable_baselines.common.vec_env import DummyVecEnv
@@ -22,7 +22,8 @@ df = pd.read_csv('./data/challenging_popularity.csv')
 env = DummyVecEnv([lambda: cache_env(df)])
 
 #%%
-model = A2C('MlpPolicy', env, gamma= 0.99 , n_steps= 13, learning_rate=0.001, alpha=0.98, epsilon=2e-05, lr_schedule='linear')
+model = ACER('MlpPolicy', env, n_steps=13, learning_rate=0.001, lr_schedule='linear')
+#('MlpPolicy', env, gamma= 0.99 , n_steps= 13, learning_rate=0.001, alpha=0.98, epsilon=2e-05, lr_schedule='linear')
 #A2C('MlpPolicy', env, gamma= 0.9, n_steps= 18, learning_rate=0.00095)
 #A2C('MlpLstmPolicy', env, gamma= 0.9, n_steps= 18, learning_rate=0.01, alpha=0.9, epsilon=1e-05, lr_schedule='linear')
 #model.load('A2C_cache.zip')
@@ -31,7 +32,7 @@ model = A2C('MlpPolicy', env, gamma= 0.99 , n_steps= 13, learning_rate=0.001, al
 #%%
 model.learn(total_timesteps=120000)
 #%%
-model.save('final_version')
+model.save('ACER_final')
 #%%
 #model = A2C('MlpPolicy', env)
 #model.load('A2C_cache.zip')

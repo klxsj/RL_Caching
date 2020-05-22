@@ -49,6 +49,8 @@ plt.hist(bs3, bins=np.arange(numFiles+2))
 plt.show()
 
 #%%
+  
+
 files = []
 for i in range(len(bs1 -1)) :
     files.append(bs1[i])

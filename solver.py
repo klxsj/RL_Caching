@@ -15,24 +15,21 @@ df = pd.read_csv('./data/requests.csv')
 
 # The algorithms require a vectorized environment to run
 env = DummyVecEnv([lambda: cache_env(df)])
-#%%
+
 model = PPO2(MlpPolicy, env, verbose=1)
+model.load('ppo2_positive_rewards.zip')
 #%%
-<<<<<<< HEAD
 #model.learn(total_timesteps=40000)
 #%%
-model.load('ppo2_positive_rewards.zip')
 
-obs = env.reset()
-for i in range(501):
-=======
+
+#%%
 model.learn(total_timesteps=100000)
 model.save("PPO2_new")
 #%%
 r=[]
 obs = env.reset()
 for i in range(500):
->>>>>>> 90632ef5b0fb93f3a612159fc774a6b1674cde70
     action, _states = model.predict(obs)
     obs, rewards, done, info = env.step(action)
     r.append(rewards)

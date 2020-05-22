@@ -37,6 +37,7 @@ class cache_env(gym.Env):
         self.fresh_slots= [1, 3, 5]
         self.episodes=[]
         self.episodes_avg_fresh=[]
+        self.utilization=[]
         self.line1= np.zeros(shape=(1,6))
 
 
@@ -113,16 +114,16 @@ class cache_env(gym.Env):
         
       #  calculate the reward for each case       
         if self.which_BS == 0:
-            self.reward = e1 * self.MIN_COMMUN + p_has * self.MID_COMMUN
+            self.reward = e1 * self.MIN_COMMUN # + p_has * self.MID_COMMUN
             if e1==1:
                 self.mem_status[0:2, :edge1_has[0][0]] = np.roll(self.mem_status[0:2, :edge1_has[0][0]], 1, axis=1)
-                self.freshness[0:2, :edge1_has[0][0]] = np.roll(self.mem_status[0:2, :edge1_has[0][0]], 1, axis=1)
+                self.freshness[0:2, :edge1_has[0][0]] = np.roll(self.freshness[0:2, :edge1_has[0][0]], 1, axis=1)
                 self.reward -= self.mem_status[1, edge1_has[0][0]] #substract freshness cost
                 if action!=0:
                     self.reward += self.greedy_punishment * (e1 + p_has)
             elif p_has == 1:
                 self.mem_status[4:, :parent_has[0][0]] = np.roll(self.mem_status[2*i: 2*i+1, :parent_has[0][0]], 1, axis=1)
-                self.freshness[4:, :parent_has[0][0]] = np.roll(self.mem_status[2*i: 2*i+1, :parent_has[0][0]], 1, axis=1)
+                self.freshness[4:, :parent_has[0][0]] = np.roll(self.freshness[4: 2*i+1, :parent_has[0][0]], 1, axis=1)
                 self.reward -= self.mem_status[5, parent_has[0][0]] #substract freshness cost
                 if action!=0:
                     self.reward += self.greedy_punishment
@@ -132,7 +133,7 @@ class cache_env(gym.Env):
             # self.reward -= self.avg_fresh
             
         elif self.which_BS ==1:
-            self.reward = e2 * self.MIN_COMMUN + p_has * self.MID_COMMUN
+            self.reward = e2 * self.MIN_COMMUN # + p_has * self.MID_COMMUN
             if e2==1:
                 self.mem_status[2:4, :edge2_has[0][0]] = np.roll(self.mem_status[2:4, :edge2_has[0][0]], 1, axis=1)
                 self.freshness[2:4, :edge2_has[0][0]] = np.roll(self.freshness[2:4, :edge2_has[0][0]], 1, axis=1)
@@ -140,8 +141,8 @@ class cache_env(gym.Env):
                 if action!=0:
                     self.reward += self.greedy_punishment * (e2 + p_has)
             elif p_has == 1:
-                self.mem_status[4:, :parent_has[0][0]] = np.roll(self.mem_status[2*i: 2*i+1, :parent_has[0][0]], 1, axis=1)
-                self.freshness[4:, :parent_has[0][0]] = np.roll(self.freshness[2*i: 2*i+1, :parent_has[0][0]], 1, axis=1)
+                self.mem_status[4:, :parent_has[0][0]] = np.roll(self.mem_status[4: , :parent_has[0][0]], 1, axis=1)
+                self.freshness[4:, :parent_has[0][0]] = np.roll(self.freshness[4: , :parent_has[0][0]], 1, axis=1)
                 self.reward -= self.mem_status[5, parent_has[0][0]] #substract freshness cost
                 if action!=0:
                     self.reward += self.greedy_punishment
@@ -177,6 +178,7 @@ class cache_env(gym.Env):
         self.done = self.current_step >= self.MAX_STEPS
         self.episodes.append(self.reward)
         self.episodes_avg_fresh.append(self.avg_fresh)
+        self.utilization.append((18 - under_utilized)/18)
         return obs, self.reward, self.done, {}
 
 
@@ -237,12 +239,19 @@ class cache_env(gym.Env):
         fresh2 = np.around(self.freshness, decimals=3)
         print(f'Freshnes: {fresh2}')
         print(f'Reward: {self.reward}')
-        if self.current_step == 499 :
+        if self.current_step == 1000 :
             plt.title('rewards in each step')
             plt.plot(self.episodes)
             plt.show()
-            plt.title('average freshness in each step (lower is better)')
+            plt.title('average freshness in each step')
+            self.episodes_avg_fresh = np.array(self.episodes_avg_fresh)
+            self.episodes_avg_fresh /= 3
             plt.plot(self.episodes_avg_fresh)
+            plt.show()
+            plt.title('average utilization in each step (higher is better)')
+            self.utilization = np.array(self.utilization)
+            plt.plot(self.utilization)
+            print(f'Avg Utilization: {np.mean(self.utilization)}')
             plt.show()
             print(f'first reward: {self.episodes[0]}')
             print(f'lastreward: {self.episodes[-1]}')

@@ -24,14 +24,15 @@ df = pd.read_csv('./data/challenging_popularity.csv')
 
 
 env = DummyVecEnv([lambda: cache_env(df)])
-model = A2C('MlpPolicy', env, gamma= 0.99 , n_steps= 20, learning_rate=0.003, alpha=0.98, epsilon=2e-05, lr_schedule='linear')
-model.load('A2C_new_env')
+# model = A2C('MlpPolicy', env, gamma= 0.99 , n_steps= 20, learning_rate=0.003, alpha=0.98, epsilon=2e-05, lr_schedule='linear')
+
+model = A2C.load('final_version.zip')
 
 r=[]
 rewards=[]
 
 obs = env.reset()
-for i in range(500):
+for i in range(1000):
     print('')
     print('')
     print('----------------------------------------------')
